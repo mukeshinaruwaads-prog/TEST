@@ -22,7 +22,7 @@ app.get('/chat', async (req, res) => {
   if (!browser) {
     browser = await puppeteer.launch({
       headless: 'new',
-      executablePath: '/usr/bin/google-chrome-stable',  // System Chrome on Render
+      // Uses bundled Chromium (downloaded during npm install—no executablePath needed)
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -44,14 +44,20 @@ app.get('/chat', async (req, res) => {
     // Wait for challenge clearance (stealth handles most)
     await page.waitForTimeout(5000);
 
-    // Skip login for demo (add your session cookies or automate login below)
-    // Example login (uncomment & fill creds):
-    // await page.fill('input[name="username"]', 'your-email@example.com');
-    // await page.click('button[type="submit"]');
-    // await page.waitForTimeout(2000);
-    // await page.fill('input[name="password"]', 'your-password');
-    // await page.click('button[type="submit"]');
-    // await page.waitForURL('**/chat**', { waitUntil: 'networkidle' });
+    // Automate login using env vars (optional; skip if you load cookies manually)
+    const email = process.env.OPENAI_EMAIL;
+    const password = process.env.OPENAI_PASSWORD;
+    if (email && password) {
+      await page.fill('input[name="username"]', email);
+      await page.click('button[type="submit"]');
+      await page.waitForTimeout(2000);
+      await page.fill('input[name="password"]', password);
+      await page.click('button[type="submit"]');
+      await page.waitForURL('**/chat**', { waitUntil: 'networkidle' });
+    } else {
+      // If no creds, assume logged in via cookies or manual session—add error handling if needed
+      console.log('No credentials provided; skipping login.');
+    }
 
     // Send prompt with human-like typing
     const inputSelector = 'textarea[data-id="root"]';
